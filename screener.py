@@ -180,154 +180,175 @@ def build_payload(tickers):
             payload.append(price)
     return payload
 
-# ── Call Claude API with web search for macro context + external picks ─────────
-def generate_brief(portfolio_data, watchlist_data):
-    today = datetime.date.today().strftime("%A, %B %d, %Y")
-
-    prompt = f"""
-You are a sharp equity analyst writing a personal daily morning brief. Today is {today}.
-
-You have two sets of holdings:
-
-PORTFOLIO (currently owned — monitor for hold/sell signals):
-{json.dumps(portfolio_data, indent=2)}
-
-WATCHLIST (not yet owned — monitor for buy entry signals):
-{json.dumps(watchlist_data, indent=2)}
-
-First, use your web search tool to find:
-1. Today's key macro context: S&P 500 and Nasdaq moves, 10-year yield, VIX, oil prices, dollar index, any Fed commentary
-2. The current S&P 500 median forward P/E (for valuation context)
-3. Any major sector rotation or thematic signals today (e.g. energy, semis, AI names, defensives)
-4. 3-4 tickers NOT on the lists above that look interesting right now — could be undervalued, breaking out technically, benefiting from macro regime, or showing strong sentiment shift. Consider current macro environment signals (e.g. oil supply, rate environment, AI capex cycle, etc.)
-
-Then write the daily brief as a complete, self-contained HTML document. Use this EXACT structure and styling:
-
-<!DOCTYPE html>
-<html>
-<head>
-<style>
-  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1a1a1a; }}
-  h1 {{ color: #1a1a2e; border-bottom: 3px solid #1a1a2e; padding-bottom: 8px; }}
-  h2 {{ color: #1a1a2e; margin-top: 36px; margin-bottom: 12px; font-size: 1.2em; border-left: 4px solid #1a1a2e; padding-left: 10px; }}
-  .subtitle {{ color: #666; font-size: 0.9em; margin-top: -8px; margin-bottom: 20px; }}
-  .pulse-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }}
-  .pulse-item {{ background: #f5f7fa; border-radius: 6px; padding: 10px 14px; }}
-  .pulse-label {{ font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }}
-  .pulse-value {{ font-size: 1.05em; font-weight: 600; color: #1a1a2e; }}
-  .pulse-change.up {{ color: #16a34a; }} .pulse-change.down {{ color: #dc2626; }}
-  ul.pulse-bullets {{ margin: 12px 0; padding-left: 20px; line-height: 1.8; }}
-  table {{ width: 100%; border-collapse: collapse; font-size: 0.88em; margin-top: 8px; }}
-  th {{ background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; font-weight: 600; }}
-  td {{ padding: 7px 10px; border-bottom: 1px solid #e8e8e8; }}
-  tr:nth-child(even) {{ background: #f9fafb; }}
-  .up {{ color: #16a34a; font-weight: 600; }} .down {{ color: #dc2626; font-weight: 600; }}
-  .signal-buy {{ background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
-  .signal-sell {{ background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
-  .signal-watch {{ background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
-  .signal-hold {{ background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
-  .commentary-block {{ margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e8e8e8; border-radius: 8px; }}
-  .commentary-block h3 {{ margin: 0 0 6px 0; font-size: 1em; color: #1a1a2e; }}
-  .pick-block {{ margin-bottom: 16px; padding: 14px 16px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 0 8px 8px 0; }}
-  .pick-block h3 {{ margin: 0 0 6px 0; color: #0369a1; }}
-  .risk-block {{ margin-bottom: 16px; padding: 14px 16px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; }}
-  .risk-block h3 {{ margin: 0 0 6px 0; color: #c2410c; }}
-  .section-label {{ font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }}
-  p {{ line-height: 1.65; margin: 6px 0; }}
-  .tag {{ display: inline-block; font-size: 0.75em; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }}
-  .tag-portfolio {{ background: #ede9fe; color: #6d28d9; }}
-  .tag-watchlist {{ background: #dbeafe; color: #1d4ed8; }}
-</style>
-</head>
-<body>
-
-SECTION 1 — HEADER:
-<h1>📈 Daily Morning Brief</h1>
-<p class="subtitle">[Day, Date] &nbsp;|&nbsp; Personal Portfolio Intelligence &nbsp;|&nbsp; SPX Fwd P/E: [value]x &nbsp;|&nbsp; 10Y: [value]%</p>
-
-SECTION 2 — MARKET PULSE:
-<h2>📊 Market Pulse</h2>
-First show a pulse-grid with 6 tiles: S&P 500, Nasdaq, Dow, 10Y Yield, VIX, WTI Crude — each with label, value, and colored change.
-Then write 6-8 bullet points (ul class="pulse-bullets") covering: index performance narrative, bond market, VIX reading, oil/commodities, dollar, Fed/macro theme of the day, sector rotation signals, and what it means for the portfolio broadly.
-
-SECTION 3 — PORTFOLIO SNAPSHOT:
-<h2>📋 Portfolio Snapshot</h2>
-<p class="section-label">Portfolio Holdings — SPX Fwd P/E Reference: [X]x</p>
-Full HTML table. INCLUDE EVERY SINGLE PORTFOLIO TICKER — do not skip any. Columns:
-Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
-- Color 1D%, vs 52W High, vs 200MA green/red using class="up" or class="down"
-- For MACD Momentum, use the macd_momentum field directly (e.g. "▲ Building", "▼ Weakening", "⟳ Crossing Up"). Color green for ▲/Crossing Up, red for ▼/Crossing Down
-- Signal uses styled spans: <span class="signal-buy">🟢 Buy More</span> or signal-sell, signal-watch, signal-hold
-- Base signal equally on technicals + valuation + news
-
-Then same table for WATCHLIST tickers (if any) with header "Watchlist — Entry Signals"
-- Signal options: <span class="signal-buy">🟢 Buy Now</span>, <span class="signal-watch">🟡 Getting Interesting</span>, <span class="signal-hold">⚪ Not Yet</span>
-
-SECTION 4 — NEWS & EVENTS FEED:
-<h2>📰 News & Events</h2>
-<p class="section-label">Only flag tickers where something actually happened today</p>
-
-Scan the news data provided AND your web search results. For each ticker that had a meaningful event in the last 24-48 hours, create one commentary-block. ONLY include a ticker if at least one of these triggers applies:
-- Price move ≥ ±5% (flag with 🔥)
-- Earnings release or guidance update (flag with 📊)
-- Analyst upgrade, downgrade, or price target change (flag with 🎯)
-- Major fund disclosed position change — buy/sell/increase/decrease (flag with 🏦)
-- CEO/CFO speaks publicly, investor day, conference presentation (flag with 🎤)
-- M&A, partnership, contract win/loss, regulatory event (flag with 📋)
-- Major news article with clear price implications (flag with 📰)
-
-If NONE of the above apply to a ticker, DO NOT include it. Silence is fine — not every name needs commentary every day.
-
-Format each entry as:
-<div class="commentary-block">
-  <h3>[EMOJI] TICKER — Company Name <span class="tag tag-portfolio">Portfolio</span></h3>
-  <p>2-3 sentences max: what happened, why it matters, and what to watch next.</p>
-</div>
-
-If no tickers had notable events today, write:
-<div class="commentary-block"><p>No material events across the portfolio or watchlist today. The table tells the story.</p></div>
-
-SECTION 5 — TOP OPPORTUNITIES (only if watchlist has names):
-<h2>🎯 Top Opportunities</h2>
-2-3 most actionable watchlist buys. Use pick-block divs. One paragraph each covering all three signal dimensions.
-
-SECTION 6 — CLAUDE'S PICKS:
-<h2>💡 Claude's Picks</h2>
-<p class="section-label">3-4 names not on either list — identified from macro signals, technicals, and sentiment</p>
-For each, use a pick-block div with: ticker + company name as h3, then bullets for: Why interesting now | Key risk | Entry approach
-
-SECTION 7 — RISK FLAGS:
-<h2>⚠️ Risk Flags</h2>
-2-3 most concerning names. Use risk-block divs. Be direct — technically breaking down, valuation stretched, negative catalysts.
-
-SECTION 8 — TOMORROW'S WATCH LIST:
-<h2>👀 Tomorrow's Watch List</h2>
-2-3 names with specific price levels or catalysts. Use commentary-block divs.
-
-</body></html>
-
-CRITICAL RULES:
-- Output ONLY the complete HTML document — no markdown, no backticks, no preamble
-- Include EVERY ticker in the snapshot tables — do not skip any
-- Section 4 (News & Events) is EVENT-DRIVEN ONLY — do not write commentary for tickers with nothing to report
-- All other sections must be present and clearly labeled
-- Keep everything tight and direct — no disclaimers or fluff
+# ── Shared CSS ────────────────────────────────────────────────────────────────
+CSS = """
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1a1a1a; }
+  h1 { color: #1a1a2e; border-bottom: 3px solid #1a1a2e; padding-bottom: 8px; }
+  h2 { color: #1a1a2e; margin-top: 36px; margin-bottom: 12px; font-size: 1.2em; border-left: 4px solid #1a1a2e; padding-left: 10px; }
+  .subtitle { color: #666; font-size: 0.9em; margin-top: -8px; margin-bottom: 20px; }
+  .pulse-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
+  .pulse-item { background: #f5f7fa; border-radius: 6px; padding: 10px 14px; }
+  .pulse-label { font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pulse-value { font-size: 1.05em; font-weight: 600; color: #1a1a2e; }
+  .pulse-change.up { color: #16a34a; } .pulse-change.down { color: #dc2626; }
+  ul.pulse-bullets { margin: 12px 0; padding-left: 20px; line-height: 1.8; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.88em; margin-top: 8px; }
+  th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; font-weight: 600; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e8e8e8; }
+  tr:nth-child(even) { background: #f9fafb; }
+  .up { color: #16a34a; font-weight: 600; } .down { color: #dc2626; font-weight: 600; }
+  .signal-buy { background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+  .signal-sell { background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+  .signal-watch { background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+  .signal-hold { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
+  .commentary-block { margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e8e8e8; border-radius: 8px; }
+  .commentary-block h3 { margin: 0 0 6px 0; font-size: 1em; color: #1a1a2e; }
+  .pick-block { margin-bottom: 16px; padding: 14px 16px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 0 8px 8px 0; }
+  .pick-block h3 { margin: 0 0 6px 0; color: #0369a1; }
+  .risk-block { margin-bottom: 16px; padding: 14px 16px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; }
+  .risk-block h3 { margin: 0 0 6px 0; color: #c2410c; }
+  .section-label { font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
+  p { line-height: 1.65; margin: 6px 0; }
+  .tag { display: inline-block; font-size: 0.75em; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
+  .tag-portfolio { background: #ede9fe; color: #6d28d9; }
+  .tag-watchlist { background: #dbeafe; color: #1d4ed8; }
 """
 
-    response = client.messages.create(
+def extract_text(response):
+    return "".join(b.text for b in response.content if hasattr(b, "text"))
+
+# ── CALL 1: Market Pulse + Portfolio Snapshot ─────────────────────────────────
+def generate_part1(portfolio_data, watchlist_data, today):
+    prompt = f"""
+You are a sharp equity analyst. Today is {today}.
+
+PORTFOLIO DATA:
+{json.dumps(portfolio_data, indent=2)}
+
+WATCHLIST DATA:
+{json.dumps(watchlist_data, indent=2)}
+
+Use web search to find: today's S&P 500, Nasdaq, Dow levels and % changes, 10Y yield, VIX, WTI/Brent crude, dollar index (DXY), any Fed commentary, S&P 500 forward P/E, and major sector rotation themes.
+
+Output ONLY the following HTML — no <!DOCTYPE>, no <html>, no <head>, no <body> tags, no CSS, no preamble:
+
+<!-- PART1_START -->
+<h1>📈 Daily Morning Brief</h1>
+<p class="subtitle">[Day, Date] &nbsp;|&nbsp; Personal Portfolio Intelligence &nbsp;|&nbsp; SPX Fwd P/E: [X]x &nbsp;|&nbsp; 10Y: [X]%</p>
+
+<h2>📊 Market Pulse</h2>
+[pulse-grid with 6 tiles: S&P 500, Nasdaq, Dow, 10Y Yield, VIX, WTI Crude]
+[6-8 bullet points: index narrative, bonds, VIX, oil, dollar, Fed theme, sector rotation, portfolio read]
+
+<h2>📋 Portfolio Snapshot</h2>
+<p class="section-label">Portfolio Holdings — SPX Fwd P/E Reference: [X]x</p>
+[Full table — EVERY portfolio ticker, no exceptions]
+Columns: Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
+- Use class="up"/"down" for colored values
+- MACD Momentum: use macd_momentum field, color green for ▲/Crossing Up, red for ▼/Crossing Down
+- Signal: use signal-buy / signal-sell / signal-watch / signal-hold span classes
+
+[Watchlist table if watchlist is non-empty, header "Watchlist — Entry Signals"]
+- Signal options: Buy Now (signal-buy), Getting Interesting (signal-watch), Not Yet (signal-hold)
+<!-- PART1_END -->
+
+RULES: Output only the HTML fragment between the comment markers. No markdown, no backticks, EVERY ticker included.
+"""
+    resp = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=8000,
+        max_tokens=6000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": prompt}]
     )
+    return extract_text(resp)
 
-    # Extract text from response (may include tool use blocks)
-    html_output = ""
-    for block in response.content:
-        if hasattr(block, "text"):
-            html_output += block.text
+# ── CALL 2: News, Picks, Risk Flags, Watch List ───────────────────────────────
+def generate_part2(portfolio_data, watchlist_data, today):
+    portfolio_tickers = [d["ticker"] for d in portfolio_data]
+    watchlist_tickers = [d["ticker"] for d in watchlist_data]
 
-    return html_output
+    prompt = f"""
+You are a sharp equity analyst. Today is {today}.
+
+PORTFOLIO tickers: {portfolio_tickers}
+WATCHLIST tickers: {watchlist_tickers}
+
+News data per ticker:
+{json.dumps([{{"ticker": d["ticker"], "news": d.get("news", []), "pct_change": d.get("pct_change"), "estimates": d.get("estimates")}} for d in portfolio_data + watchlist_data], indent=2)}
+
+Use web search to find:
+1. Any material news in last 48h for the above tickers (analyst actions, earnings, fund disclosures, CEO commentary, deals, major price moves)
+2. Any WATCHLIST tickers showing strong buy signals right now (technicals + catalysts + valuation all aligned)
+3. 2-3 stocks NOT on either list that have a compelling opportunity TODAY based on macro trends, breaking news, fund activity, clinical results, geopolitical signals, or any other catalyst — be specific and opportunistic, think like a hedge fund analyst scanning the tape
+4. 2-3 names from the portfolio showing the clearest signs of deterioration or structural weakness
+
+Output ONLY this HTML fragment — no DOCTYPE, no html/head/body tags, no CSS:
+
+<!-- PART2_START -->
+<h2>📰 News & Events</h2>
+<p class="section-label">Material events only — last 24-48 hours</p>
+[For each ticker with a trigger event, one commentary-block div:]
+[Triggers: price ±5% 🔥 | earnings 📊 | analyst action 🎯 | fund disclosure 🏦 | CEO/conference 🎤 | deal/contract 📋 | major news 📰]
+[Format: <div class="commentary-block"><h3>[EMOJI] TICKER — Name <span class="tag tag-portfolio">Portfolio</span></h3><p>2-3 sentences: what happened, why it matters, what to watch.</p></div>]
+[If nothing material: <div class="commentary-block"><p>No material events today. The table tells the story.</p></div>]
+
+<h2>🎯 Watchlist Opportunities</h2>
+<p class="section-label">Only highlight watchlist names where buy signals are clearly aligned</p>
+[Use pick-block divs. Only include names where technicals + valuation + catalyst all point to a near-term entry. If no watchlist names qualify, write: <div class="pick-block"><p>No watchlist names with strong enough buy alignment today.</p></div>]
+
+<h2>💡 Claude's Picks</h2>
+<p class="section-label">2-3 names outside the portfolio/watchlist — opportunistic calls based on today's tape</p>
+[Use pick-block divs. Each pick must have a specific catalyst from TODAY — a macro signal, breaking news, fund activity, geopolitical event, clinical result, or technical breakout. Be concrete: ticker, company name, the specific catalyst, why it creates upside, key risk, entry approach.]
+
+<h2>⚠️ Risk Flags</h2>
+<p class="section-label">Portfolio names showing clear deterioration — be direct</p>
+[2-3 risk-block divs. Flag names with: technical breakdown (below 200MA + negative MACD building), valuation stretched with no growth support, negative catalysts, or sector headwinds that are worsening. One short paragraph each.]
+
+<h2>👀 Tomorrow's Watch List</h2>
+[2-3 commentary-block divs. Specific price levels or catalysts to monitor — not generic, actionable.]
+<!-- PART2_END -->
+
+RULES: Output only the HTML fragment. No markdown, no backticks, no preamble.
+"""
+    resp = client.messages.create(
+        model="claude-sonnet-4-6",
+        max_tokens=5000,
+        tools=[{"type": "web_search_20250305", "name": "web_search"}],
+        messages=[{"role": "user", "content": prompt}]
+    )
+    return extract_text(resp)
+
+# ── Stitch both parts into one complete HTML email ────────────────────────────
+def generate_brief(portfolio_data, watchlist_data):
+    today = datetime.date.today().strftime("%A, %B %d, %Y")
+
+    print("  Generating Part 1 (Market Pulse + Snapshot)...")
+    part1 = generate_part1(portfolio_data, watchlist_data, today)
+
+    print("  Generating Part 2 (News, Picks, Risk Flags)...")
+    part2 = generate_part2(portfolio_data, watchlist_data, today)
+
+    # Strip comment markers if present
+    for marker in ["<!-- PART1_START -->", "<!-- PART1_END -->", "<!-- PART2_START -->", "<!-- PART2_END -->"]:
+        part1 = part1.replace(marker, "")
+        part2 = part2.replace(marker, "")
+
+    # Assemble full HTML document
+    html = f"""<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>
+{CSS}
+</style>
+</head>
+<body>
+{part1.strip()}
+{part2.strip()}
+</body>
+</html>"""
+
+    return html
 
 # ── Send email ────────────────────────────────────────────────────────────────
 def send_email(html_body):
