@@ -197,14 +197,18 @@ CSS = """
   h2 { color: #1a1a2e; margin-top: 36px; margin-bottom: 12px; font-size: 1.2em; border-left: 4px solid #1a1a2e; padding-left: 10px; }
   .subtitle { color: #666; font-size: 0.9em; margin-top: -8px; margin-bottom: 20px; }
   .pulse-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }
-  .pulse-item { background: #f5f7fa; border-radius: 6px; padding: 10px 14px; }
-  .pulse-label { font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }
-  .pulse-value { font-size: 1.05em; font-weight: 600; color: #1a1a2e; }
-  .pulse-change.up { color: #16a34a; } .pulse-change.down { color: #dc2626; }
-  ul.pulse-bullets { margin: 12px 0; padding-left: 20px; line-height: 1.8; }
+  .pulse-item { background: #1a1a2e; border-radius: 6px; padding: 10px 14px; }
+  .pulse-label { font-size: 0.75em; color: #a0aec0; text-transform: uppercase; letter-spacing: 0.05em; }
+  .pulse-value { font-size: 1.15em; font-weight: 700; color: #ffffff; }
+  .pulse-change { font-size: 0.9em; font-weight: 600; }
+  .pulse-change.up { color: #4ade80; }
+  .pulse-change.down { color: #f87171; }
+  ul.pulse-bullets { margin: 12px 0; padding-left: 20px; line-height: 1.9; color: #1a1a1a; }
+  ul.pulse-bullets li { color: #1a1a1a; margin-bottom: 4px; }
+  ul.pulse-bullets li strong { color: #1a1a2e; }
   table { width: 100%; border-collapse: collapse; font-size: 0.88em; margin-top: 8px; }
   th { background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; font-weight: 600; }
-  td { padding: 7px 10px; border-bottom: 1px solid #e8e8e8; }
+  td { padding: 7px 10px; border-bottom: 1px solid #e8e8e8; color: #1a1a1a; }
   tr:nth-child(even) { background: #f9fafb; }
   .up { color: #16a34a; font-weight: 600; } .down { color: #dc2626; font-weight: 600; }
   .signal-buy { background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
@@ -213,12 +217,15 @@ CSS = """
   .signal-hold { background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }
   .commentary-block { margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e8e8e8; border-radius: 8px; }
   .commentary-block h3 { margin: 0 0 6px 0; font-size: 1em; color: #1a1a2e; }
+  .commentary-block p { color: #1a1a1a; }
   .pick-block { margin-bottom: 16px; padding: 14px 16px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 0 8px 8px 0; }
   .pick-block h3 { margin: 0 0 6px 0; color: #0369a1; }
+  .pick-block p { color: #1a1a1a; }
   .risk-block { margin-bottom: 16px; padding: 14px 16px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; }
   .risk-block h3 { margin: 0 0 6px 0; color: #c2410c; }
+  .risk-block p { color: #1a1a1a; }
   .section-label { font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }
-  p { line-height: 1.65; margin: 6px 0; }
+  p { line-height: 1.65; margin: 6px 0; color: #1a1a1a; }
   .tag { display: inline-block; font-size: 0.75em; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }
   .tag-portfolio { background: #ede9fe; color: #6d28d9; }
   .tag-watchlist { background: #dbeafe; color: #1d4ed8; }
@@ -266,36 +273,42 @@ def generate_part1(portfolio_data, watchlist_data, today):
 You are a sharp equity analyst. Today is {today}.
 
 PORTFOLIO TABLE DATA: {port_table}
-
 WATCHLIST TABLE DATA: {watch_table}
 
 Use web search to find: today's S&P 500, Nasdaq, Dow levels and % changes, 10Y yield, VIX, WTI/Brent crude, dollar index (DXY), any Fed commentary, S&P 500 forward P/E, and major sector rotation themes.
 
-Output ONLY the following HTML — no <!DOCTYPE>, no <html>, no <head>, no <body> tags, no CSS, no preamble:
+Output ONLY this HTML fragment. Follow this EXACT order — do not deviate:
 
-<!-- PART1_START -->
+FIRST: Header
 <h1>📈 Daily Morning Brief</h1>
 <p class="subtitle">[Day, Date] &nbsp;|&nbsp; Personal Portfolio Intelligence &nbsp;|&nbsp; SPX Fwd P/E: [X]x &nbsp;|&nbsp; 10Y: [X]%</p>
 
+SECOND: Market Pulse section
 <h2>📊 Market Pulse</h2>
-[pulse-grid with 6 tiles: S&P 500, Nasdaq, Dow, 10Y Yield, VIX, WTI Crude]
-[6-8 bullet points: index narrative, bonds, VIX, oil, dollar, Fed theme, sector rotation, portfolio read]
+- pulse-grid div with exactly 6 pulse-item tiles: S&P 500, Nasdaq, Dow, 10Y Yield, VIX, WTI Crude
+- Each tile: pulse-label, pulse-value, pulse-change (class="up" or "down")
+- Then ul class="pulse-bullets" with 6-8 li items: index narrative, bonds, VIX, oil, dollar, Fed theme, sector rotation, portfolio read
+- All bullet text must be plain dark color — do NOT use gray or muted colors on bullet text
 
+THIRD: Portfolio Snapshot — THIS MUST COME IMMEDIATELY AFTER MARKET PULSE, NO EXCEPTIONS
 <h2>📋 Portfolio Snapshot</h2>
 <p class="section-label">Portfolio Holdings — SPX Fwd P/E Reference: [X]x</p>
-[Full table — EVERY portfolio ticker, no exceptions]
+Build a complete HTML table with ALL {len(portfolio_data)} portfolio tickers. Do not skip or truncate any row.
 Columns: Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
-- Use class="up"/"down" for colored values
-- MACD Momentum: use macd_momentum field, color green for ▲/Crossing Up, red for ▼/Crossing Down
-- P/E vs SPX: divide fwd_pe by the SPX forward P/E you found; show as ratio (e.g. 0.8x) colored green if <1.0, red if >1.5
-- Signal: use signal-buy / signal-sell / signal-watch / signal-hold span classes
-- Base signal on: technicals (macd_momentum + vs_200ma_pct) + valuation (fwd_pe vs SPX) + vol_vs_avg
+- 1D %, vs 52W High, vs 200MA: use class="up" for positive, class="down" for negative
+- MACD Momentum: show macd_momentum field value; wrap in <span class="up"> if ▲ or Crossing Up, <span class="down"> if ▼ or Crossing Down
+- P/E vs SPX: fwd_pe divided by SPX fwd P/E as Xx ratio; green (class="up") if under 1.0x, red (class="down") if over 1.5x
+- Rev Growth: show rev_growth_yoy as +X% with class="up"
+- Vol/Avg: show vol_vs_avg as Xx
+- Signal: <span class="signal-buy">🟢 Buy More</span> or signal-sell, signal-watch, signal-hold
 
-[Watchlist table if watchlist is non-empty, header "Watchlist — Entry Signals"]
-- Signal options: Buy Now (signal-buy), Getting Interesting (signal-watch), Not Yet (signal-hold)
-<!-- PART1_END -->
+If watchlist is non-empty, add a second table immediately after:
+<p class="section-label" style="margin-top:20px">Watchlist — Entry Signals</p>
+Same columns. Signal options: signal-buy (Buy Now), signal-watch (Getting Interesting), signal-hold (Not Yet)
 
-RULES: Output only the HTML fragment. No markdown, no backticks, EVERY ticker included.
+NO OTHER CONTENT after the tables. Stop here.
+
+RULES: Raw HTML only. No markdown, no backticks, no preamble, no content after the watchlist table.
 """
     resp = client.messages.create(
         model="claude-sonnet-4-6",
@@ -337,16 +350,13 @@ Output ONLY this HTML fragment — no DOCTYPE, no html/head/body tags, no CSS:
 <p class="section-label">Only highlight watchlist names where buy signals are clearly aligned</p>
 [Use pick-block divs. Only include names where technicals + valuation + catalyst all point to a near-term entry. If no watchlist names qualify, write: <div class="pick-block"><p>No watchlist names with strong enough buy alignment today.</p></div>]
 
-<h2>💡 Claude's Picks</h2>
-<p class="section-label">2-3 names outside the portfolio/watchlist — opportunistic calls based on today's tape</p>
-[Use pick-block divs. Each pick must have a specific catalyst from TODAY — a macro signal, breaking news, fund activity, geopolitical event, clinical result, or technical breakout. Be concrete: ticker, company name, the specific catalyst, why it creates upside, key risk, entry approach.]
-
 <h2>⚠️ Risk Flags</h2>
 <p class="section-label">Portfolio names showing clear deterioration — be direct</p>
 [2-3 risk-block divs. Flag names with: technical breakdown (below 200MA + negative MACD building), valuation stretched with no growth support, negative catalysts, or sector headwinds that are worsening. One short paragraph each.]
 
-<h2>👀 Tomorrow's Watch List</h2>
-[2-3 commentary-block divs. Specific price levels or catalysts to monitor — not generic, actionable.]
+<h2>💡 Claude's Picks & Watch List</h2>
+<p class="section-label">Opportunistic calls + key levels to monitor tomorrow — no overlap between entries</p>
+[Use pick-block divs. Include 3-4 total entries combining both outside picks AND key levels/catalysts to watch tomorrow. Each entry must be distinct — do not repeat the same ticker or thesis. Format each as: ticker + company name as h3, then: Catalyst | Why it creates upside | Key risk | Entry/watch level. Prioritize names with a specific catalyst from TODAY.]
 <!-- PART2_END -->
 
 RULES: Output only the HTML fragment. No markdown, no backticks, no preamble.
