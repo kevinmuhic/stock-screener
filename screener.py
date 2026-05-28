@@ -43,7 +43,21 @@ def calc_macd(close_series):
     macd   = ema12 - ema26
     signal = macd.ewm(span=9, adjust=False).mean()
     hist   = macd - signal
-    return round(macd.iloc[-1], 3), round(signal.iloc[-1], 3), round(hist.iloc[-1], 3)
+
+    h_now  = hist.iloc[-1]
+    h_prev = hist.iloc[-2]
+
+    # Detect crossover (sign flip in last 2 bars)
+    if h_prev < 0 and h_now >= 0:
+        momentum_label = "⟳ Crossing Up"
+    elif h_prev > 0 and h_now <= 0:
+        momentum_label = "⟳ Crossing Down"
+    elif h_now > 0:
+        momentum_label = "▲ Building" if h_now > h_prev else "▲ Weakening"
+    else:
+        momentum_label = "▼ Building" if h_now < h_prev else "▼ Weakening"
+
+    return round(macd.iloc[-1], 3), round(signal.iloc[-1], 3), round(float(h_now), 3), momentum_label
 
 # ── Fetch price, technical & fundamental data ─────────────────────────────────
 def fetch_price_data(ticker):
@@ -67,7 +81,7 @@ def fetch_price_data(ticker):
         volume       = int(hist["Volume"].iloc[-1])
         avg_volume   = int(hist["Volume"].tail(20).mean())
 
-        macd_val, macd_sig, macd_hist = calc_macd(close)
+        macd_val, macd_sig, macd_hist, macd_momentum = calc_macd(close)
 
         # Forward P/E
         fwd_eps = info.get("forwardEps")
@@ -93,6 +107,7 @@ def fetch_price_data(ticker):
             "macd":           macd_val,
             "macd_signal":    macd_sig,
             "macd_hist":      macd_hist,
+            "macd_momentum":  macd_momentum,
             "volume":         volume,
             "avg_volume":     avg_volume,
             "vol_vs_avg":     round(volume / avg_volume, 2) if avg_volume else None,
@@ -239,8 +254,9 @@ SECTION 3 — PORTFOLIO SNAPSHOT:
 <h2>📋 Portfolio Snapshot</h2>
 <p class="section-label">Portfolio Holdings — SPX Fwd P/E Reference: [X]x</p>
 Full HTML table. INCLUDE EVERY SINGLE PORTFOLIO TICKER — do not skip any. Columns:
-Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Hist | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
+Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
 - Color 1D%, vs 52W High, vs 200MA green/red using class="up" or class="down"
+- For MACD Momentum, use the macd_momentum field directly (e.g. "▲ Building", "▼ Weakening", "⟳ Crossing Up"). Color green for ▲/Crossing Up, red for ▼/Crossing Down
 - Signal uses styled spans: <span class="signal-buy">🟢 Buy More</span> or signal-sell, signal-watch, signal-hold
 - Base signal equally on technicals + valuation + news
 
