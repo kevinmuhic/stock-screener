@@ -1,5 +1,6 @@
 import os
 import json
+import time
 import smtplib
 import datetime
 import yfinance as yf
@@ -345,6 +346,9 @@ def generate_brief(portfolio_data, watchlist_data):
 
     print("  Generating Part 1 (Market Pulse + Snapshot)...")
     part1 = generate_part1(portfolio_data, watchlist_data, today)
+
+    print("  Waiting 60s between API calls to avoid rate limit...")
+    time.sleep(60)
 
     print("  Generating Part 2 (News, Picks, Risk Flags)...")
     part2 = generate_part2(portfolio_data, watchlist_data, today)
