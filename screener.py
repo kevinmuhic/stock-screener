@@ -263,14 +263,29 @@ Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E v
 Then same table for WATCHLIST tickers (if any) with header "Watchlist — Entry Signals"
 - Signal options: <span class="signal-buy">🟢 Buy Now</span>, <span class="signal-watch">🟡 Getting Interesting</span>, <span class="signal-hold">⚪ Not Yet</span>
 
-SECTION 4 — NAME-BY-NAME COMMENTARY:
-<h2>📝 Name-by-Name Commentary</h2>
-For EVERY ticker (portfolio first, then watchlist), use a commentary-block div:
+SECTION 4 — NEWS & EVENTS FEED:
+<h2>📰 News & Events</h2>
+<p class="section-label">Only flag tickers where something actually happened today</p>
+
+Scan the news data provided AND your web search results. For each ticker that had a meaningful event in the last 24-48 hours, create one commentary-block. ONLY include a ticker if at least one of these triggers applies:
+- Price move ≥ ±5% (flag with 🔥)
+- Earnings release or guidance update (flag with 📊)
+- Analyst upgrade, downgrade, or price target change (flag with 🎯)
+- Major fund disclosed position change — buy/sell/increase/decrease (flag with 🏦)
+- CEO/CFO speaks publicly, investor day, conference presentation (flag with 🎤)
+- M&A, partnership, contract win/loss, regulatory event (flag with 📋)
+- Major news article with clear price implications (flag with 📰)
+
+If NONE of the above apply to a ticker, DO NOT include it. Silence is fine — not every name needs commentary every day.
+
+Format each entry as:
 <div class="commentary-block">
-  <h3>TICKER — Company Name <span class="tag tag-portfolio">Portfolio</span></h3>
-  <p>3-5 sentences: price action today + news | valuation vs SPX median | MACD interpretation | signal rationale | one thing to watch</p>
+  <h3>[EMOJI] TICKER — Company Name <span class="tag tag-portfolio">Portfolio</span></h3>
+  <p>2-3 sentences max: what happened, why it matters, and what to watch next.</p>
 </div>
-If nothing notable, one sentence is fine.
+
+If no tickers had notable events today, write:
+<div class="commentary-block"><p>No material events across the portfolio or watchlist today. The table tells the story.</p></div>
 
 SECTION 5 — TOP OPPORTUNITIES (only if watchlist has names):
 <h2>🎯 Top Opportunities</h2>
@@ -293,9 +308,10 @@ SECTION 8 — TOMORROW'S WATCH LIST:
 
 CRITICAL RULES:
 - Output ONLY the complete HTML document — no markdown, no backticks, no preamble
-- Include EVERY ticker in both the table and commentary — do not truncate
-- All sections must be present and clearly labeled
-- Keep commentary tight and direct — no disclaimers or fluff
+- Include EVERY ticker in the snapshot tables — do not skip any
+- Section 4 (News & Events) is EVENT-DRIVEN ONLY — do not write commentary for tickers with nothing to report
+- All other sections must be present and clearly labeled
+- Keep everything tight and direct — no disclaimers or fluff
 """
 
     response = client.messages.create(
