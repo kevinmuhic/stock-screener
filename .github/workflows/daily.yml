@@ -28,4 +28,6 @@ jobs:
           FINNHUB_API_KEY:     ${{ secrets.FINNHUB_API_KEY }}
           GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_ADDRESS:       ${{ secrets.EMAIL_ADDRESS }}
-        run: python screener.py
+        run: |
+          cd $GITHUB_WORKSPACE
+          python screener.py
