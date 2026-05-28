@@ -8,6 +8,9 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from anthropic import Anthropic
 
+# Always resolve paths relative to this script's location
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+
 # ── Config ────────────────────────────────────────────────────────────────────
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 FINNHUB_API_KEY   = os.environ["FINNHUB_API_KEY"]
@@ -20,7 +23,7 @@ client = Anthropic(api_key=ANTHROPIC_API_KEY)
 def load_tickers():
     portfolio, watchlist = [], []
     current = None
-    with open("tickers.txt") as f:
+    with open(os.path.join(SCRIPT_DIR, "tickers.txt")) as f:
         for raw in f:
             line = raw.split("#")[0].strip()   # strip inline comments
             if not line:
@@ -248,7 +251,7 @@ Formatting rules:
 """
 
     response = client.messages.create(
-        model="claude-sonnet-4-20250514",
+        model="claude-sonnet-4-6",
         max_tokens=4000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": prompt}]
