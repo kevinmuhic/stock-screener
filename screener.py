@@ -83,16 +83,25 @@ def fetch_price_data(ticker):
 
         macd_val, macd_sig, macd_hist, macd_momentum = calc_macd(close)
 
-        # Forward P/E
         fwd_eps = info.get("forwardEps")
-        fwd_pe  = round(last_close / fwd_eps, 1) if fwd_eps and fwd_eps > 0 else info.get("forwardPE")
+        raw_fwd_pe = info.get("forwardPE")
+        if fwd_eps and isinstance(fwd_eps, (int, float)) and fwd_eps > 0:
+            fwd_pe = round(last_close / fwd_eps, 1)
+        elif raw_fwd_pe and isinstance(raw_fwd_pe, (int, float)):
+            fwd_pe = round(raw_fwd_pe, 1)
+        else:
+            fwd_pe = None
 
-        # Rolling historical P/E proxy (last 52 weeks of fwd P/E approximation)
-        # We use trailing P/E from info as reference point
-        ttm_pe     = info.get("trailingPE")
-        pb         = info.get("priceToBook")
-        rev_growth = info.get("revenueGrowth")   # YoY
-        fwd_rev_growth = info.get("earningsGrowth")  # fwd earnings growth as proxy
+        ttm_pe         = info.get("trailingPE")
+        pb             = info.get("priceToBook")
+        rev_growth     = info.get("revenueGrowth")
+        fwd_rev_growth = info.get("earningsGrowth")
+
+        def safe_pct(val):
+            return round(val * 100, 1) if val and isinstance(val, (int, float)) else None
+
+        def safe_round(val, n=1):
+            return round(val, n) if val and isinstance(val, (int, float)) else None
 
         return {
             "ticker":         ticker,
@@ -113,9 +122,9 @@ def fetch_price_data(ticker):
             "vol_vs_avg":     round(volume / avg_volume, 2) if avg_volume else None,
             "fwd_pe":         fwd_pe,
             "ttm_pe":         ttm_pe,
-            "pb":             round(pb, 1) if pb else None,
-            "rev_growth_yoy": round(rev_growth * 100, 1) if rev_growth else None,
-            "fwd_rev_growth": round(fwd_rev_growth * 100, 1) if fwd_rev_growth else None,
+            "pb":             safe_round(pb),
+            "rev_growth_yoy": safe_pct(rev_growth),
+            "fwd_rev_growth": safe_pct(fwd_rev_growth),
             "mkt_cap_b":      round(info.get("marketCap", 0) / 1e9, 1),
             "sector":         info.get("sector"),
         }
@@ -136,7 +145,7 @@ def fetch_news(ticker):
         )
         resp     = requests.get(url, timeout=10)
         articles = resp.json()[:5]
-        return [{"headline": a["headline"], "source": a["source"]} for a in articles]
+        return [{"headline": a.get("headline", ""), "source": a.get("source", "")} for a in articles if isinstance(a, dict)]
     except Exception as e:
         print(f"  Finnhub news error for {ticker}: {e}")
         return []
@@ -267,6 +276,18 @@ def generate_part2(portfolio_data, watchlist_data, today):
     portfolio_tickers = [d["ticker"] for d in portfolio_data]
     watchlist_tickers = [d["ticker"] for d in watchlist_data]
 
+    # Build news payload outside f-string to avoid double-brace conflicts
+    news_payload = [
+        {
+            "ticker":     d["ticker"],
+            "pct_change": d.get("pct_change"),
+            "news":       d.get("news", []),
+            "estimates":  d.get("estimates"),
+        }
+        for d in portfolio_data + watchlist_data
+    ]
+    news_json = json.dumps(news_payload, indent=2)
+
     prompt = f"""
 You are a sharp equity analyst. Today is {today}.
 
@@ -274,7 +295,7 @@ PORTFOLIO tickers: {portfolio_tickers}
 WATCHLIST tickers: {watchlist_tickers}
 
 News data per ticker:
-{json.dumps([{{"ticker": d["ticker"], "news": d.get("news", []), "pct_change": d.get("pct_change"), "estimates": d.get("estimates")}} for d in portfolio_data + watchlist_data], indent=2)}
+{news_json}
 
 Use web search to find:
 1. Any material news in last 48h for the above tickers (analyst actions, earnings, fund disclosures, CEO commentary, deals, major price moves)
