@@ -1,0 +1,27 @@
+# Stock Screener — Tickers
+# Add tickers freely under each section — one per line
+# Lines starting with # are ignored (use for notes)
+# To move a stock: cut from one section, paste in the other
+
+[PORTFOLIO]
+NVDA
+AMZN
+AAPL
+AMD
+MSFT
+ORCL
+PLTR
+XOM
+GOOGL
+ASTS
+CVX
+GEV
+ETN
+XYL
+CAI
+CRWD
+
+[WATCHLIST]
+# Add watchlist names below — e.g:
+FLY
+# META
