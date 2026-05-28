@@ -186,73 +186,105 @@ First, use your web search tool to find:
 3. Any major sector rotation or thematic signals today (e.g. energy, semis, AI names, defensives)
 4. 3-4 tickers NOT on the lists above that look interesting right now — could be undervalued, breaking out technically, benefiting from macro regime, or showing strong sentiment shift. Consider current macro environment signals (e.g. oil supply, rate environment, AI capex cycle, etc.)
 
-Then write the daily brief in clean HTML with these exact sections:
+Then write the daily brief as a complete, self-contained HTML document. Use this EXACT structure and styling:
 
----
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+  body {{ font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 900px; margin: 0 auto; padding: 24px; background: #ffffff; color: #1a1a1a; }}
+  h1 {{ color: #1a1a2e; border-bottom: 3px solid #1a1a2e; padding-bottom: 8px; }}
+  h2 {{ color: #1a1a2e; margin-top: 36px; margin-bottom: 12px; font-size: 1.2em; border-left: 4px solid #1a1a2e; padding-left: 10px; }}
+  .subtitle {{ color: #666; font-size: 0.9em; margin-top: -8px; margin-bottom: 20px; }}
+  .pulse-grid {{ display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 16px; }}
+  .pulse-item {{ background: #f5f7fa; border-radius: 6px; padding: 10px 14px; }}
+  .pulse-label {{ font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.05em; }}
+  .pulse-value {{ font-size: 1.05em; font-weight: 600; color: #1a1a2e; }}
+  .pulse-change.up {{ color: #16a34a; }} .pulse-change.down {{ color: #dc2626; }}
+  ul.pulse-bullets {{ margin: 12px 0; padding-left: 20px; line-height: 1.8; }}
+  table {{ width: 100%; border-collapse: collapse; font-size: 0.88em; margin-top: 8px; }}
+  th {{ background: #1a1a2e; color: white; padding: 8px 10px; text-align: left; font-weight: 600; }}
+  td {{ padding: 7px 10px; border-bottom: 1px solid #e8e8e8; }}
+  tr:nth-child(even) {{ background: #f9fafb; }}
+  .up {{ color: #16a34a; font-weight: 600; }} .down {{ color: #dc2626; font-weight: 600; }}
+  .signal-buy {{ background: #dcfce7; color: #15803d; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
+  .signal-sell {{ background: #fee2e2; color: #dc2626; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
+  .signal-watch {{ background: #fef9c3; color: #854d0e; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
+  .signal-hold {{ background: #f1f5f9; color: #475569; padding: 2px 8px; border-radius: 12px; font-size: 0.85em; font-weight: 600; white-space: nowrap; }}
+  .commentary-block {{ margin-bottom: 18px; padding: 14px 16px; border: 1px solid #e8e8e8; border-radius: 8px; }}
+  .commentary-block h3 {{ margin: 0 0 6px 0; font-size: 1em; color: #1a1a2e; }}
+  .pick-block {{ margin-bottom: 16px; padding: 14px 16px; background: #f0f9ff; border-left: 4px solid #0ea5e9; border-radius: 0 8px 8px 0; }}
+  .pick-block h3 {{ margin: 0 0 6px 0; color: #0369a1; }}
+  .risk-block {{ margin-bottom: 16px; padding: 14px 16px; background: #fff7ed; border-left: 4px solid #f97316; border-radius: 0 8px 8px 0; }}
+  .risk-block h3 {{ margin: 0 0 6px 0; color: #c2410c; }}
+  .section-label {{ font-size: 0.75em; color: #888; text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 4px; }}
+  p {{ line-height: 1.65; margin: 6px 0; }}
+  .tag {{ display: inline-block; font-size: 0.75em; padding: 1px 7px; border-radius: 10px; margin-left: 6px; vertical-align: middle; }}
+  .tag-portfolio {{ background: #ede9fe; color: #6d28d9; }}
+  .tag-watchlist {{ background: #dbeafe; color: #1d4ed8; }}
+</style>
+</head>
+<body>
 
+SECTION 1 — HEADER:
+<h1>📈 Daily Morning Brief</h1>
+<p class="subtitle">[Day, Date] &nbsp;|&nbsp; Personal Portfolio Intelligence &nbsp;|&nbsp; SPX Fwd P/E: [value]x &nbsp;|&nbsp; 10Y: [value]%</p>
+
+SECTION 2 — MARKET PULSE:
 <h2>📊 Market Pulse</h2>
-6-8 sentences. Cover: equity index performance, bond market, VIX, commodities (especially oil), dollar, any Fed/macro narrative driving the day. End with one sentence on what it means for the portfolio broadly.
+First show a pulse-grid with 6 tiles: S&P 500, Nasdaq, Dow, 10Y Yield, VIX, WTI Crude — each with label, value, and colored change.
+Then write 6-8 bullet points (ul class="pulse-bullets") covering: index performance narrative, bond market, VIX reading, oil/commodities, dollar, Fed/macro theme of the day, sector rotation signals, and what it means for the portfolio broadly.
 
----
-
+SECTION 3 — PORTFOLIO SNAPSHOT:
 <h2>📋 Portfolio Snapshot</h2>
-HTML table with these columns for PORTFOLIO names only:
-Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD | Fwd P/E | P/E vs SPX Median | Rev Growth | Vol/Avg | Signal
+<p class="section-label">Portfolio Holdings — SPX Fwd P/E Reference: [X]x</p>
+Full HTML table. INCLUDE EVERY SINGLE PORTFOLIO TICKER — do not skip any. Columns:
+Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Hist | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
+- Color 1D%, vs 52W High, vs 200MA green/red using class="up" or class="down"
+- Signal uses styled spans: <span class="signal-buy">🟢 Buy More</span> or signal-sell, signal-watch, signal-hold
+- Base signal equally on technicals + valuation + news
 
-For Signal use: 🟢 Buy More | 🔴 Trim/Sell | 🟡 Watch | ⚪ Hold
-Base signal equally on: (1) technicals — price vs MAs, MACD direction, volume, (2) valuation — Fwd P/E vs SPX median and vs own history, (3) news/catalysts
+Then same table for WATCHLIST tickers (if any) with header "Watchlist — Entry Signals"
+- Signal options: <span class="signal-buy">🟢 Buy Now</span>, <span class="signal-watch">🟡 Getting Interesting</span>, <span class="signal-hold">⚪ Not Yet</span>
 
-Then a second table for WATCHLIST names with same columns but Signal options: 🟢 Buy Now | 🟡 Getting Interesting | ⚪ Not Yet
-
----
-
+SECTION 4 — NAME-BY-NAME COMMENTARY:
 <h2>📝 Name-by-Name Commentary</h2>
-For each ticker (portfolio first, then watchlist), write 3-5 sentences:
-- What happened today (price action, volume, news)
-- What valuation says vs SPX median P/E and its own history
-- MACD signal interpretation (bullish/bearish crossover, divergence, momentum)
-- The signal and why
-- One specific thing to watch tomorrow
-Skip to one sentence only if nothing notable.
+For EVERY ticker (portfolio first, then watchlist), use a commentary-block div:
+<div class="commentary-block">
+  <h3>TICKER — Company Name <span class="tag tag-portfolio">Portfolio</span></h3>
+  <p>3-5 sentences: price action today + news | valuation vs SPX median | MACD interpretation | signal rationale | one thing to watch</p>
+</div>
+If nothing notable, one sentence is fine.
 
----
-
+SECTION 5 — TOP OPPORTUNITIES (only if watchlist has names):
 <h2>🎯 Top Opportunities</h2>
-2-3 names from the WATCHLIST that look most actionable as buys right now. One paragraph each with full rationale covering all three signal dimensions.
+2-3 most actionable watchlist buys. Use pick-block divs. One paragraph each covering all three signal dimensions.
 
----
-
+SECTION 6 — CLAUDE'S PICKS:
 <h2>💡 Claude's Picks</h2>
-3-4 tickers NOT on either list that you identified via web search. For each:
-- Ticker + company name
-- Why it's interesting right now (technicals, valuation, macro tailwind, sentiment)
-- Key risk to the thesis
-- Suggested entry approach (e.g. "wait for pullback to 200MA" or "break above $X confirms momentum")
+<p class="section-label">3-4 names not on either list — identified from macro signals, technicals, and sentiment</p>
+For each, use a pick-block div with: ticker + company name as h3, then bullets for: Why interesting now | Key risk | Entry approach
 
----
-
+SECTION 7 — RISK FLAGS:
 <h2>⚠️ Risk Flags</h2>
-2-3 names (from either list) showing the most concerning signals — technically breaking down, valuation stretched, negative catalysts, or deteriorating analyst sentiment. Be direct.
+2-3 most concerning names. Use risk-block divs. Be direct — technically breaking down, valuation stretched, negative catalysts.
 
----
-
+SECTION 8 — TOMORROW'S WATCH LIST:
 <h2>👀 Tomorrow's Watch List</h2>
-2-3 names with specific price levels or catalysts to monitor tomorrow.
+2-3 names with specific price levels or catalysts. Use commentary-block divs.
 
----
+</body></html>
 
-Formatting rules:
-- Clean HTML, white background, readable sans-serif font
-- Table borders: 1px solid #e0e0e0, alternating row shading
-- Section headers with subtle color (use #1a1a2e for dark navy)
-- Keep commentary tight — no fluff, no disclaimers
-- Dollar signs and % symbols throughout
-- Do not add any preamble or closing remarks outside the HTML
+CRITICAL RULES:
+- Output ONLY the complete HTML document — no markdown, no backticks, no preamble
+- Include EVERY ticker in both the table and commentary — do not truncate
+- All sections must be present and clearly labeled
+- Keep commentary tight and direct — no disclaimers or fluff
 """
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=4000,
+        max_tokens=8000,
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": prompt}]
     )
