@@ -2,8 +2,8 @@ name: Daily Stock Brief
 
 on:
   schedule:
-    - cron: '0 11 * * 1-5'   # 7:00 AM ET (11:00 UTC), Monday–Friday only
-  workflow_dispatch:           # allows manual trigger from GitHub UI anytime
+    - cron: '0 11 * * 1-5'
+  workflow_dispatch:
 
 jobs:
   run-screener:
@@ -28,6 +28,4 @@ jobs:
           FINNHUB_API_KEY:     ${{ secrets.FINNHUB_API_KEY }}
           GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
           EMAIL_ADDRESS:       ${{ secrets.EMAIL_ADDRESS }}
-        run: |
-          cd $GITHUB_WORKSPACE
-          python screener.py
+        run: python screener.py
