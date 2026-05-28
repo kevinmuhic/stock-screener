@@ -376,11 +376,21 @@ def generate_brief(portfolio_data, watchlist_data):
     print("  Generating Part 1 (Market Pulse + Snapshot)...")
     part1 = generate_part1(portfolio_data, watchlist_data, today)
 
-    print("  Waiting 60s between API calls to avoid rate limit...")
-    time.sleep(60)
+    print("  Waiting 120s between API calls to avoid rate limit...")
+    time.sleep(120)
 
     print("  Generating Part 2 (News, Picks, Risk Flags)...")
-    part2 = generate_part2(portfolio_data, watchlist_data, today)
+    # Retry once if rate limited
+    for attempt in range(2):
+        try:
+            part2 = generate_part2(portfolio_data, watchlist_data, today)
+            break
+        except Exception as e:
+            if "rate_limit" in str(e).lower() and attempt == 0:
+                print("  Rate limit hit on Part 2 — waiting 90s and retrying...")
+                time.sleep(90)
+            else:
+                raise
 
     # Strip comment markers if present
     for marker in ["<!-- PART1_START -->", "<!-- PART1_END -->", "<!-- PART2_START -->", "<!-- PART2_END -->"]:
