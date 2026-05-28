@@ -224,19 +224,50 @@ CSS = """
   .tag-watchlist { background: #dbeafe; color: #1d4ed8; }
 """
 
+# ── Slim payload helpers ──────────────────────────────────────────────────────
+def slim_for_table(data):
+    """Only the fields needed to build the snapshot table."""
+    return [
+        {
+            "ticker":        d["ticker"],
+            "last_close":    d.get("last_close"),
+            "pct_change":    d.get("pct_change"),
+            "pct_from_52h":  d.get("pct_from_52h"),
+            "vs_200ma_pct":  d.get("vs_200ma_pct"),
+            "macd_momentum": d.get("macd_momentum"),
+            "fwd_pe":        d.get("fwd_pe"),
+            "rev_growth_yoy":d.get("rev_growth_yoy"),
+            "vol_vs_avg":    d.get("vol_vs_avg"),
+        }
+        for d in data
+    ]
+
+def slim_for_news(data):
+    """Only the fields needed for news/events analysis."""
+    return [
+        {
+            "ticker":     d["ticker"],
+            "pct_change": d.get("pct_change"),
+            "news":       d.get("news", []),
+            "estimates":  d.get("estimates"),
+        }
+        for d in data
+    ]
+
 def extract_text(response):
     return "".join(b.text for b in response.content if hasattr(b, "text"))
 
 # ── CALL 1: Market Pulse + Portfolio Snapshot ─────────────────────────────────
 def generate_part1(portfolio_data, watchlist_data, today):
+    port_table = json.dumps(slim_for_table(portfolio_data))
+    watch_table = json.dumps(slim_for_table(watchlist_data))
+
     prompt = f"""
 You are a sharp equity analyst. Today is {today}.
 
-PORTFOLIO DATA:
-{json.dumps(portfolio_data, indent=2)}
+PORTFOLIO TABLE DATA: {port_table}
 
-WATCHLIST DATA:
-{json.dumps(watchlist_data, indent=2)}
+WATCHLIST TABLE DATA: {watch_table}
 
 Use web search to find: today's S&P 500, Nasdaq, Dow levels and % changes, 10Y yield, VIX, WTI/Brent crude, dollar index (DXY), any Fed commentary, S&P 500 forward P/E, and major sector rotation themes.
 
@@ -256,13 +287,15 @@ Output ONLY the following HTML — no <!DOCTYPE>, no <html>, no <head>, no <body
 Columns: Ticker | Price | 1D % | vs 52W High | vs 200MA | MACD Momentum | Fwd P/E | P/E vs SPX | Rev Growth | Vol/Avg | Signal
 - Use class="up"/"down" for colored values
 - MACD Momentum: use macd_momentum field, color green for ▲/Crossing Up, red for ▼/Crossing Down
+- P/E vs SPX: divide fwd_pe by the SPX forward P/E you found; show as ratio (e.g. 0.8x) colored green if <1.0, red if >1.5
 - Signal: use signal-buy / signal-sell / signal-watch / signal-hold span classes
+- Base signal on: technicals (macd_momentum + vs_200ma_pct) + valuation (fwd_pe vs SPX) + vol_vs_avg
 
 [Watchlist table if watchlist is non-empty, header "Watchlist — Entry Signals"]
 - Signal options: Buy Now (signal-buy), Getting Interesting (signal-watch), Not Yet (signal-hold)
 <!-- PART1_END -->
 
-RULES: Output only the HTML fragment between the comment markers. No markdown, no backticks, EVERY ticker included.
+RULES: Output only the HTML fragment. No markdown, no backticks, EVERY ticker included.
 """
     resp = client.messages.create(
         model="claude-sonnet-4-6",
@@ -276,27 +309,13 @@ RULES: Output only the HTML fragment between the comment markers. No markdown, n
 def generate_part2(portfolio_data, watchlist_data, today):
     portfolio_tickers = [d["ticker"] for d in portfolio_data]
     watchlist_tickers = [d["ticker"] for d in watchlist_data]
-
-    # Build news payload outside f-string to avoid double-brace conflicts
-    news_payload = [
-        {
-            "ticker":     d["ticker"],
-            "pct_change": d.get("pct_change"),
-            "news":       d.get("news", []),
-            "estimates":  d.get("estimates"),
-        }
-        for d in portfolio_data + watchlist_data
-    ]
-    news_json = json.dumps(news_payload, indent=2)
+    news_json = json.dumps(slim_for_news(portfolio_data + watchlist_data))
 
     prompt = f"""
 You are a sharp equity analyst. Today is {today}.
-
-PORTFOLIO tickers: {portfolio_tickers}
-WATCHLIST tickers: {watchlist_tickers}
-
-News data per ticker:
-{news_json}
+Portfolio: {portfolio_tickers}
+Watchlist: {watchlist_tickers}
+News/estimates data: {news_json}
 
 Use web search to find:
 1. Any material news in last 48h for the above tickers (analyst actions, earnings, fund disclosures, CEO commentary, deals, major price moves)
