@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import time
 import smtplib
@@ -316,7 +317,9 @@ RULES: Raw HTML only. No markdown, no backticks, no preamble, no content after t
         tools=[{"type": "web_search_20250305", "name": "web_search"}],
         messages=[{"role": "user", "content": prompt}]
     )
-    return extract_text(resp)
+    raw = extract_text(resp)
+    match = re.search(r'<h1', raw)
+    return raw[match.start():] if match else raw
 
 # ── CALL 2: News, Picks, Risk Flags, Watch List ───────────────────────────────
 def generate_part2(portfolio_data, watchlist_data, today):
