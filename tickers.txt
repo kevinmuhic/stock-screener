@@ -24,4 +24,8 @@ CRWD
 [WATCHLIST]
 # Add watchlist names below — e.g:
 FLY
+ANET
+CEG
+CCJ
+BWXT
 # META
